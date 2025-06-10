@@ -2,6 +2,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from contextlib import asynccontextmanager
 from database import create_db_and_tables
+from routers import hello
 import uvicorn
 
 # Lifespan for database initialization
@@ -27,10 +28,8 @@ app.add_middleware(
     allow_headers=["*"],  
 )
 
-# Define a simple route for testing
-@app.get("/hello")
-async def hello():
-    return {"message": "Hello, World!"}
+# Include routers
+app.include_router(hello.router)
 
 if __name__ == "__main__":
     # Run the FastAPI application using uvicorn
