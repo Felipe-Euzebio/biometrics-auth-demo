@@ -2,8 +2,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from contextlib import asynccontextmanager
 from database import create_db_and_tables
-from routers import hello
-import uvicorn
+from routers import hello, auth
 
 # Lifespan for database initialization
 @asynccontextmanager
@@ -15,6 +14,9 @@ async def lifespan(app: FastAPI):
 
 # FastAPI application instance
 app = FastAPI(
+    title="Biometrics Authentication API",
+    description="A secure authentication system with biometric support",
+    version="1.0.0",
     root_path="/api",  # Set the root path for the API
     lifespan=lifespan,
 )
@@ -30,8 +32,5 @@ app.add_middleware(
 
 # Include routers
 app.include_router(hello.router)
-
-if __name__ == "__main__":
-    # Run the FastAPI application using uvicorn
-    uvicorn.run(app, host="localhost", port=8000)
+app.include_router(auth.router)
     
