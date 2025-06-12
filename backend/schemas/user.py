@@ -1,4 +1,4 @@
-from pydantic import BaseModel, Field, EmailStr, field_validator, ConfigDict
+from pydantic import BaseModel, Field, EmailStr, ConfigDict
 
 # DTO for sign-in/sign-up
 class AuthDto(BaseModel):
