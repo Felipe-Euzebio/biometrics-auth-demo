@@ -1,6 +1,6 @@
 from pydantic import BaseModel, Field, EmailStr, ConfigDict, field_validator
 from fastapi import UploadFile
-from backend.utils.image_utils import validate_base64_image
+from utils.image_utils import validate_base64_image
 
 # DTO for sign-in/sign-up
 class AuthDto(BaseModel):
