@@ -1,7 +1,10 @@
+from typing import TYPE_CHECKING, Optional
 from sqlmodel import SQLModel, Field, Relationship, Column, BLOB, DateTime, func
 from datetime import datetime, UTC
-from models.user import User
 import numpy as np
+
+if TYPE_CHECKING:
+    from models.user import User  # Avoid circular import issues
 
 class BiometricProfile(SQLModel, table=True):
     """Biometric profile model for storing user biometric data."""	
@@ -20,7 +23,7 @@ class BiometricProfile(SQLModel, table=True):
         sa_column=Column(DateTime(timezone=True), onupdate=func.now())
     )
 
-    user: User | None = Relationship(back_populates="biometric_profile")
+    user: Optional["User"] = Relationship(back_populates="biometric_profile")
 
     # Property to handle conversion between bytes and list of floats
     @property
