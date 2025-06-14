@@ -24,7 +24,7 @@ async def register(
     
     # Generate facial embedding first to validate the image data
     try:
-        facial_embedding = generate_facial_embedding(request.image_bytes)
+        facial_embedding = generate_facial_embedding(request.image_data)
     except FacialEmbeddingError as e:
         raise HTTPException(status_code=400, detail=str(e))
 
