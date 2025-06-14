@@ -4,8 +4,7 @@ from deepface import DeepFace
 from PIL import Image
 from fastapi import UploadFile
 from errors.facial_embedding_error import FacialEmbeddingError
-
-DEFAULT_MODEL_NAME = "Facenet512"  # Default model for facial embeddings
+from constants import DEFAULT_MODEL_NAME
 
 def generate_facial_embedding(image_file: UploadFile) -> bytes:
     """
