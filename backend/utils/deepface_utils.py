@@ -31,17 +31,37 @@ def generate_facial_embedding(image_file: UploadFile) -> bytes:
         if image.mode != 'RGB':
             image = image.convert('RGB')
 
+        # Convert PIL Image to numpy array
+        image_array = np.array(image)
+
         # Generate embedding using DeepFace
-        embedding = DeepFace.represent(
-            img_path=image,
+        embedding_result = DeepFace.represent(
+            img_path=image_array,
             model_name=DEFAULT_MODEL_NAME,  # Using Facenet512 for high-quality embeddings
             detector_backend="opencv",
             enforce_detection=True,
             align=True
         )
         
+        # DeepFace.represent returns a list of dictionaries, extract the embedding vector
+        if not embedding_result:
+            raise FacialEmbeddingError(
+                message="No face detected in the provided image.",
+                detail=None
+            )
+        
+        # Check if multiple faces are detected (only one face is allowed for biometric authentication)
+        if len(embedding_result) > 1:
+            raise FacialEmbeddingError(
+                message=f"Multiple faces detected in the image. Only one face is allowed for biometric authentication. Found {len(embedding_result)} faces.",
+                detail=None
+            )
+        
+        # Get the first face's embedding (assuming single face)
+        embedding_vector = embedding_result[0]["embedding"]
+        
         # Convert embedding to numpy array and then to bytes
-        embedding_array = np.array(embedding, dtype=np.float32)
+        embedding_array = np.array(embedding_vector, dtype=np.float32)
         embedding_bytes = embedding_array.tobytes()
 
         return embedding_bytes
