@@ -1,0 +1,24 @@
+from typing import Optional
+from pydantic import BaseModel, Field, EmailStr, field_validator, model_validator
+from fastapi import UploadFile
+from validators.image_validators import validate_image_data
+
+# DTO for login with either password or facial recognition
+class LoginDto(BaseModel):
+    email: EmailStr = Field(..., description="User email address")
+    password: Optional[str] = Field(None, min_length=8, max_length=128, description="User password (minimum 8 characters)")
+    image_data: Optional[UploadFile] = Field(None, description="Uploaded image file for facial recognition")
+
+    @model_validator(mode='after')
+    def validate_auth_method(self) -> 'LoginDto':
+        """Ensure either password or image_data is provided, but not both"""
+        if self.password is None and self.image_data is None:
+            raise ValueError("Either password or image_data must be provided for authentication")
+        
+        if self.password is not None and self.image_data is not None:
+            raise ValueError("Cannot provide both password and image_data. Choose one authentication method")
+        
+        return self
+
+    # Validator to ensure image data is valid
+    validate_image_data = field_validator("image_data")(validate_image_data)
