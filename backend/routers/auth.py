@@ -3,7 +3,7 @@ from dependencies import SessionDep, password_hasher
 from models.user import User
 from models.biometric_profile import BiometricProfile
 from sqlmodel import select
-from schemas.user import AuthDto, UserDto, RegisterDto
+from schemas import LoginDto, UserDto, RegisterDto
 from utils.deepface_utils import generate_facial_embedding
 from errors.facial_embedding_error import FacialEmbeddingError
 
@@ -56,7 +56,7 @@ async def register(
 
 @router.post("/login")
 async def login(
-    request: AuthDto, 
+    request: LoginDto, 
     session: SessionDep
 ):
     # Check if user exists
