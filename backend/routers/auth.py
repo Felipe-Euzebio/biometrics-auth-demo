@@ -1,10 +1,9 @@
 from fastapi import APIRouter, HTTPException, Form
 from dependencies import SessionDep, password_hasher
-from models.user import User
-from models.biometric_profile import BiometricProfile
+from models import User, BiometricProfile
 from sqlmodel import select
 from schemas import LoginDto, UserDto, RegisterDto
-from utils.deepface_utils import generate_facial_embedding
+from utils.deepface_utils import generate_facial_embedding, verify_facial_embeddings
 from errors.facial_embedding_error import FacialEmbeddingError
 
 router = APIRouter(prefix="/auth", tags=["auth"])
@@ -56,16 +55,36 @@ async def register(
 
 @router.post("/login")
 async def login(
-    request: LoginDto, 
-    session: SessionDep
+    session: SessionDep,
+    request: LoginDto = Form(..., media_type="multipart/form-data"), 
 ):
-    # Check if user exists
+    # Find user by email
     statement = select(User).where(User.email == request.email)
     db_user = session.exec(statement).first()
 
-    # If user does not exist or password is incorrect, raise an error
-    if not db_user or not password_hasher.verify(db_user.password, request.password):
+    # User doesn't exist
+    if not db_user:
         raise HTTPException(status_code=400, detail="Invalid email or password")
     
-    # Map db_user to UserDto
+    # Password authentication
+    if request.password and not password_hasher.verify(db_user.password, request.password):
+        raise HTTPException(status_code=400, detail="Invalid email or password")
+    
+    # Facial authentication
+    if request.image_data:
+        # User must have a biometric profile for facial auth
+        if not db_user.biometric_profile:
+            raise HTTPException(status_code=400, detail="No biometric profile found for this user")
+        
+        try:
+            # Generate embedding from uploaded image and verify against stored profile
+            facial_embedding = generate_facial_embedding(request.image_data)
+
+            if not verify_facial_embeddings(facial_embedding, db_user.biometric_profile.facial_embedding):
+                raise HTTPException(status_code=400, detail="Facial authentication failed")
+            
+        except FacialEmbeddingError as e:
+            raise HTTPException(status_code=400, detail=str(e))
+    
+    # Authentication successful - return user data
     return UserDto.model_validate(db_user)
