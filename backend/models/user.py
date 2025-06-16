@@ -2,7 +2,7 @@ from typing import TYPE_CHECKING, Optional
 from sqlmodel import SQLModel, Field, Relationship
 
 if TYPE_CHECKING:
-    from models.biometric_profile import BiometricProfile  # Avoid circular import issues
+    from models import BiometricProfile  # Avoid circular import issues
 
 class User(SQLModel, table=True):
     """User model for authentication and user management."""

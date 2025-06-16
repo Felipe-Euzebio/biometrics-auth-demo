@@ -4,7 +4,7 @@ from datetime import datetime, UTC
 import numpy as np
 
 if TYPE_CHECKING:
-    from models.user import User  # Avoid circular import issues
+    from models import User  # Avoid circular import issues
 
 class BiometricProfile(SQLModel, table=True):
     """Biometric profile model for storing user biometric data."""	
