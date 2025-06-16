@@ -7,7 +7,7 @@ from services import AuthService
 # Database session dependency that can be used across all routers
 SessionDep = Annotated[Session, Depends(get_session)]
 
-def create_auth_service(session: Session) -> AuthService:
+def create_auth_service(session: SessionDep) -> AuthService:
     return AuthService(session)
 
 AuthServiceDep = Annotated[AuthService, Depends(create_auth_service)] 
