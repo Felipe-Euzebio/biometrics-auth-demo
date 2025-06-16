@@ -92,7 +92,7 @@ def verify_facial_embeddings(
     embedding2_array = np.frombuffer(embedding2, dtype=np.float32)
 
     # Calculate cosine distance between embeddings
-    cosine_distance = float(find_cosine_distance(embedding1_array, embedding2_array))
+    cosine_distance = find_cosine_distance(embedding1_array, embedding2_array)
 
     # Get decision threshold for your model (pre-tuned values)
     threshold = find_threshold(DEFAULT_MODEL_NAME, "cosine")
