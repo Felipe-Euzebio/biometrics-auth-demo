@@ -1,6 +1,7 @@
 import io
 import numpy as np
 from deepface import DeepFace
+from deepface.modules.verification import find_cosine_distance, find_threshold
 from PIL import Image
 from fastapi import UploadFile
 from errors.facial_embedding_error import FacialEmbeddingError
@@ -73,32 +74,28 @@ def generate_facial_embedding(image_file: UploadFile) -> bytes:
         )
     
 def verify_facial_embeddings(
-    embedding1_bytes: bytes,
-    embedding2_bytes: bytes,
+    embedding1: bytes,
+    embedding2: bytes,
 ) -> bool:
     """
-    Compare two facial embeddings and return similarity score using DeepFace's verify method.
+    Compare two facial embeddings and determine if they match.
 
     Args:
-        embedding1_bytes: First facial embedding as bytes
-        embedding2_bytes: Second facial embedding as bytes
+        embedding1: First facial embedding as bytes
+        embedding2: Second facial embedding as bytes
 
     Returns:
         bool: True if embeddings match, False otherwise
     """
     # Convert bytes back to numpy arrays
-    embedding1_array = np.frombuffer(embedding1_bytes, dtype=np.float32)
-    embedding2_array = np.frombuffer(embedding2_bytes, dtype=np.float32)
+    embedding1_array = np.frombuffer(embedding1, dtype=np.float32)
+    embedding2_array = np.frombuffer(embedding2, dtype=np.float32)
 
-    # Use DeepFace's verify method with pre-calculated embeddings
-    result = DeepFace.verify(
-        img1_path=embedding1_array,
-        img2_path=embedding2_array,
-        model_name=DEFAULT_MODEL_NAME,
-        detector_backend="opencv",
-        enforce_detection=False,  # Since we already have embeddings
-        align=False,  # Since we already have embeddings
-        distance_metric="cosine",
-    )
-    
-    return result["verified"]
+    # Calculate cosine distance between embeddings
+    cosine_distance = float(find_cosine_distance(embedding1_array, embedding2_array))
+
+    # Get decision threshold for your model (pre-tuned values)
+    threshold = find_threshold(DEFAULT_MODEL_NAME, "cosine")
+
+    # Determine verification result
+    return cosine_distance <= threshold
