@@ -8,7 +8,7 @@ from argon2 import PasswordHasher
 from authx import AuthX, TokenPayload
 
 # Create password hasher instance here to avoid circular import
-password_hasher = PasswordHasher(
+_ph = PasswordHasher(
     time_cost=3,          # Number of iterations
     memory_cost=65536,    # Memory usage (64MB)
     parallelism=2,        # Number of parallel threads
@@ -20,47 +20,44 @@ class AuthService:
     def __init__(self, session: Session, authx: AuthX):
         self.session = session
         self.authx = authx
+
+    async def _get_user_by_email(self, email: str) -> User | None:
+        statement = select(User).where(User.email == email)
+        return self.session.exec(statement).first()
     
     async def register(self, request: RegisterDto) -> AuthenticatedDto:
-        # Check if user already exists
-        statement = select(User).where(User.email == request.email)
-        existing_user = self.session.exec(statement).first()
-
-        # If the user already exists, raise an error
-        if existing_user:
-            raise HTTPException(status_code=400, detail="User already exists")
-        
-        # Generate facial embedding first to validate the image data
         try:
+            # If the user already exists, raise an error
+            if await self._get_user_by_email(request.email):
+                raise HTTPException(status_code=400, detail="User already exists")
+            
+            # Generate facial embedding first to validate the image data
             facial_embedding = generate_facial_embedding(request.image_data)
-        except FacialEmbeddingError as e:
-            raise HTTPException(status_code=400, detail=str(e))
 
-        # Create user with hashed password
-        user = User(
-            email=request.email,
-            password=password_hasher.hash(request.password)
-        )
+            # Create user with hashed password
+            user = User(
+                email=request.email,
+                password=_ph.hash(request.password)
+            )
 
-        # Add the user to the database (but don't commit yet)
-        self.session.add(user)
-        self.session.flush()  # Flush to get the user ID without committing
+            # Add the user to the database (but don't commit yet)
+            self.session.add(user)
+            self.session.flush()  # Flush to get the user ID without committing
 
-        # Create a new BiometricProfile for the user
-        biometric_profile = BiometricProfile(
-            user_id=user.id,
-            facial_embedding=facial_embedding
-        )
+            # Create a new BiometricProfile for the user
+            biometric_profile = BiometricProfile(
+                user_id=user.id,
+                facial_embedding=facial_embedding
+            )
 
-        # Add the biometric profile to the database
-        self.session.add(biometric_profile)
-        
-        # Commit both user and biometric profile together
-        self.session.commit()
-        self.session.refresh(user)
+            # Add the biometric profile to the database
+            self.session.add(biometric_profile)
+            
+            # Commit both user and biometric profile together
+            self.session.commit()
+            self.session.refresh(user)
 
-        # Try to create access and refresh tokens using AuthX
-        try:
+            # Create access and refresh tokens using AuthX
             access_token = self.authx.create_access_token(
                 uid=str(user.id),
                 expiry=self.authx.config.JWT_ACCESS_TOKEN_EXPIRES
@@ -76,47 +73,47 @@ class AuthService:
                 refresh_token=refresh_token
             )
         
+        except HTTPException as e:
+            raise e
+        
+        except FacialEmbeddingError as e:
+            raise HTTPException(status_code=400, detail=str(e.message))
+        
         except Exception as e:
-            raise HTTPException(status_code=401, detail=str(e))
-
+            raise HTTPException(status_code=401, detail=e)
     
     async def login(self, request: LoginDto) -> AuthenticatedDto:
-        # Find user by email
-        statement = select(User).where(User.email == request.email)
-        db_user = self.session.exec(statement).first()
+        try:
+            user = await self._get_user_by_email(request.email)
 
-        # User doesn't exist
-        if not db_user:
-            raise HTTPException(status_code=400, detail="Invalid email or password")
-        
-        # Password authentication
-        if request.password and not password_hasher.verify(db_user.password, request.password):
-            raise HTTPException(status_code=400, detail="Invalid email or password")
-        
-        # Facial authentication
-        if request.image_data:
-            # User must have a biometric profile for facial auth
-            if not db_user.biometric_profile:
-                raise HTTPException(status_code=400, detail="No biometric profile found for this user")
+            # If the user with the provided email doesn't exist, raise an error
+            if not user:
+                raise HTTPException(status_code=400, detail="Invalid email or password")
             
-            try:
-                # Generate embedding from uploaded image and verify against stored profile
+            # If password is provided, verify it
+            if request.password and not _ph.verify(user.password, request.password):
+                raise HTTPException(status_code=400, detail="Invalid email or password")
+            
+            # If image_data is provided, generate facial embedding
+            if request.image_data:
+                # If the user doesn't have a biometric profile, raise an error
+                if not user.biometric_profile:
+                    raise HTTPException(status_code=400, detail="No biometric profile found for this user")
+                
+                # Generate embedding from uploaded image
                 facial_embedding = generate_facial_embedding(request.image_data)
 
-                if not verify_facial_embeddings(facial_embedding, db_user.biometric_profile.facial_embedding):
+                # Verify the facial embedding against the stored profile
+                if not verify_facial_embeddings(facial_embedding, user.biometric_profile.facial_embedding):
                     raise HTTPException(status_code=400, detail="Facial authentication failed")
-                
-            except FacialEmbeddingError as e:
-                raise HTTPException(status_code=400, detail=str(e))
-        
-        # Try to create access and refresh tokens using AuthX
-        try:
+            
+            # Create access and refresh tokens using AuthX
             access_token = self.authx.create_access_token(
-                uid=str(db_user.id),
+                uid=str(user.id),
                 expiry=self.authx.config.JWT_ACCESS_TOKEN_EXPIRES
             )
             refresh_token = self.authx.create_refresh_token(
-                uid=str(db_user.id),
+                uid=str(user.id),
                 expiry=self.authx.config.JWT_REFRESH_TOKEN_EXPIRES
             )
 
@@ -126,28 +123,36 @@ class AuthService:
                 refresh_token=refresh_token
             )
         
+        except HTTPException as e:
+            raise e
+        
+        except FacialEmbeddingError as e:
+            raise HTTPException(status_code=400, detail=str(e))
+        
         except Exception as e:
-            raise HTTPException(status_code=401, detail=str(e))
+            raise HTTPException(status_code=401, detail=e)
     
-
     async def refresh(
         self, 
         request: Request, 
         refresh_data: RefreshTokenDto = None
     ) -> NewAccessTokenDto:
-        # Try to get token from Authorization header
-        auth_header = request.headers.get("Authorization")
-        token = None
-
-        if auth_header and auth_header.startswith("Bearer "):
-            token = auth_header.split(" ")[1]
-        elif refresh_data and refresh_data.refresh_token:
-            token = refresh_data.refresh_token
-
-        if not token:
-            raise HTTPException(status_code=400, detail="Refresh token is required")
-        
         try:
+            # Get the token from the Authorization header
+            auth_header = request.headers.get("Authorization")
+            token = None
+
+            # If the Authorization header is present, extract the token.
+            # If the Authorization header is not present, check if the token is provided in the request body.
+            if auth_header and auth_header.startswith("Bearer "):
+                token = auth_header.split(" ")[1]
+            elif refresh_data and refresh_data.refresh_token:
+                token = refresh_data.refresh_token
+
+            # If no token is found, raise an error
+            if not token:
+                raise HTTPException(status_code=400, detail="Refresh token is required")
+            
             # Verify the refresh token
             refresh_payload: TokenPayload = self.authx.verify_token(
                 token,
@@ -164,6 +169,9 @@ class AuthService:
             # Return the new access token
             return NewAccessTokenDto(access_token=access_token)
         
+        except HTTPException as e:
+            raise e
+        
         except Exception as e:
-            raise HTTPException(status_code=401, detail=str(e))
+            raise HTTPException(status_code=401, detail=e)
     
