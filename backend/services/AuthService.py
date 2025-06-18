@@ -1,10 +1,11 @@
-from fastapi import HTTPException
+from fastapi import HTTPException, Request
 from sqlmodel import Session, select
 from models import User, BiometricProfile
-from schemas import LoginDto, UserDto, RegisterDto
+from schemas import LoginDto, RegisterDto, AuthenticatedDto, RefreshTokenDto, NewAccessTokenDto
 from utils.deepface_utils import generate_facial_embedding, verify_facial_embeddings
 from errors.facial_embedding_error import FacialEmbeddingError
 from argon2 import PasswordHasher
+from authx import AuthX, TokenPayload
 
 # Create password hasher instance here to avoid circular import
 password_hasher = PasswordHasher(
@@ -16,10 +17,11 @@ password_hasher = PasswordHasher(
 )
 
 class AuthService:
-    def __init__(self, session: Session):
+    def __init__(self, session: Session, authx: AuthX):
         self.session = session
+        self.authx = authx
     
-    async def register(self, request: RegisterDto) -> UserDto:
+    async def register(self, request: RegisterDto) -> AuthenticatedDto:
         # Check if user already exists
         statement = select(User).where(User.email == request.email)
         existing_user = self.session.exec(statement).first()
@@ -57,10 +59,23 @@ class AuthService:
         self.session.commit()
         self.session.refresh(user)
 
-        # Map user to UserDto
-        return UserDto.model_validate(user)
+        # Create access and refresh tokens using AuthX
+        access_token = self.authx.create_access_token(
+            uid=user.id,
+            expiry=self.authx.config.JWT_ACCESS_TOKEN_EXPIRES
+        )
+        refresh_token = self.authx.create_refresh_token(
+            uid=user.id,
+            expiry=self.authx.config.JWT_REFRESH_TOKEN_EXPIRES
+        )
+
+        # Return the access and refresh tokens for the authenticated user
+        return AuthenticatedDto(
+            access_token=access_token,
+            refresh_token=refresh_token
+        )
     
-    async def login(self, request: LoginDto) -> UserDto:
+    async def login(self, request: LoginDto) -> AuthenticatedDto:
         # Find user by email
         statement = select(User).where(User.email == request.email)
         db_user = self.session.exec(statement).first()
@@ -89,6 +104,54 @@ class AuthService:
             except FacialEmbeddingError as e:
                 raise HTTPException(status_code=400, detail=str(e))
         
-        # Authentication successful - return user data
-        return UserDto.model_validate(db_user)
+        try:
+            # Create access and refresh tokens using AuthX
+            access_token = self.authx.create_access_token(
+                uid=db_user.id,
+                expiry=self.authx.config.JWT_ACCESS_TOKEN_EXPIRES
+            )
+            refresh_token = self.authx.create_refresh_token(
+                uid=db_user.id,
+                expiry=self.authx.config.JWT_REFRESH_TOKEN_EXPIRES
+            )
+
+            # Return the access and refresh tokens for the authenticated user
+            return AuthenticatedDto(
+                access_token=access_token,
+                refresh_token=refresh_token
+            )
+        except Exception as e:
+            raise HTTPException(status_code=401, detail=str(e))
+    
+    async def refresh(self, request: Request, refresh_data: RefreshTokenDto = None) -> NewAccessTokenDto:
+        # Try to get token from Authorization header
+        auth_header = request.headers.get("Authorization")
+        token = None
+
+        if auth_header and auth_header.startswith("Bearer "):
+            token = auth_header.split(" ")[1]
+        elif refresh_data and refresh_data.refresh_token:
+            token = refresh_data.refresh_token
+
+        if not token:
+            raise HTTPException(status_code=400, detail="Refresh token is required")
+        
+        try:
+            # Verify the refresh token
+            refresh_payload: TokenPayload = self.authx.verify_token(
+                token,
+                verify_type=True,
+                type="refresh"
+            )
+
+            # Create new access token
+            access_token = self.authx.create_access_token(
+                uid=refresh_payload.uid,
+                expiry=self.authx.config.JWT_ACCESS_TOKEN_EXPIRES
+            )
+
+            # Return the new access token
+            return NewAccessTokenDto(access_token=access_token)
+        except Exception as e:
+            raise HTTPException(status_code=401, detail=str(e))
     
