@@ -5,3 +5,4 @@ sqlmodel==0.0.24
 argon2-cffi==25.1.0
 tf-keras==2.19.0
 pyjwt==2.10.1
+authx==1.4.3
