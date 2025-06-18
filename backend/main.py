@@ -20,8 +20,7 @@ app = FastAPI(
     description="A secure authentication system with biometric support",
     version="1.0.0",
     root_path="/api",  # Set the root path for the API
-    lifespan=lifespan,
-    debug=settings.debug,
+    lifespan=lifespan
 )
 
 # Configure AuthX error handling
