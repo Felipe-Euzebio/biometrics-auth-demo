@@ -16,8 +16,8 @@ async def lifespan(app: FastAPI):
 
 # FastAPI application instance
 app = FastAPI(
-    title="Biometrics Authentication API",
-    description="A secure authentication system with biometric support",
+    title="Facial Authentication API",
+    description="A secure facial authentication system",
     version="1.0.0",
     root_path="/api",  # Set the root path for the API
     lifespan=lifespan
