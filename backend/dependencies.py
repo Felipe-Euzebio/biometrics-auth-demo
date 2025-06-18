@@ -21,9 +21,9 @@ authx_config = AuthXConfig(
 # Global AuthX instance
 authx = AuthX(config=authx_config)
 
-def create_auth_service(session: SessionDep) -> AuthService:
-    return AuthService(session)
+AuthXDep = Annotated[AuthX, Depends(lambda: authx)] 
+
+def create_auth_service(session: SessionDep, authx: AuthXDep) -> AuthService:
+    return AuthService(session, authx)
 
 AuthServiceDep = Annotated[AuthService, Depends(create_auth_service)]
-
-AuthXDep = Annotated[AuthX, Depends(lambda: authx)] 
