@@ -62,11 +62,11 @@ class AuthService:
         # Try to create access and refresh tokens using AuthX
         try:
             access_token = self.authx.create_access_token(
-                uid=user.id,
+                uid=str(user.id),
                 expiry=self.authx.config.JWT_ACCESS_TOKEN_EXPIRES
             )
             refresh_token = self.authx.create_refresh_token(
-                uid=user.id,
+                uid=str(user.id),
                 expiry=self.authx.config.JWT_REFRESH_TOKEN_EXPIRES
             )
 
@@ -112,11 +112,11 @@ class AuthService:
         # Try to create access and refresh tokens using AuthX
         try:
             access_token = self.authx.create_access_token(
-                uid=db_user.id,
+                uid=str(db_user.id),
                 expiry=self.authx.config.JWT_ACCESS_TOKEN_EXPIRES
             )
             refresh_token = self.authx.create_refresh_token(
-                uid=db_user.id,
+                uid=str(db_user.id),
                 expiry=self.authx.config.JWT_REFRESH_TOKEN_EXPIRES
             )
 
@@ -130,7 +130,11 @@ class AuthService:
             raise HTTPException(status_code=401, detail=str(e))
     
 
-    async def refresh(self, request: Request, refresh_data: RefreshTokenDto = None) -> NewAccessTokenDto:
+    async def refresh(
+        self, 
+        request: Request, 
+        refresh_data: RefreshTokenDto = None
+    ) -> NewAccessTokenDto:
         # Try to get token from Authorization header
         auth_header = request.headers.get("Authorization")
         token = None
@@ -153,7 +157,7 @@ class AuthService:
 
             # Create new access token
             access_token = self.authx.create_access_token(
-                uid=refresh_payload.uid,
+                uid=str(refresh_payload.uid),
                 expiry=self.authx.config.JWT_ACCESS_TOKEN_EXPIRES
             )
 
