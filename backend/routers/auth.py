@@ -1,19 +1,28 @@
-from fastapi import APIRouter, Form
+from fastapi import APIRouter, Form, Request
 from dependencies import AuthServiceDep
-from schemas import LoginDto, RegisterDto
+from schemas import LoginDto, RegisterDto, AuthenticatedDto, RefreshTokenDto, NewAccessTokenDto
+from typing import Optional
 
 router = APIRouter(prefix="/auth", tags=["auth"])
 
-@router.post("/register")
+@router.post("/register", response_model=AuthenticatedDto)
 async def register(
     auth_service: AuthServiceDep,
     request: RegisterDto = Form(..., media_type="multipart/form-data")
 ):
     return await auth_service.register(request)
 
-@router.post("/login")
+@router.post("/login", response_model=AuthenticatedDto)
 async def login(
     auth_service: AuthServiceDep,
     request: LoginDto = Form(..., media_type="multipart/form-data"), 
 ):
     return await auth_service.login(request)
+
+@router.post("/refresh", response_model=NewAccessTokenDto)
+async def refresh(
+    auth_service: AuthServiceDep,
+    request: Request,
+    refresh_data: RefreshTokenDto = None
+):
+    return await auth_service.refresh(request, refresh_data)
