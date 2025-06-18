@@ -59,21 +59,26 @@ class AuthService:
         self.session.commit()
         self.session.refresh(user)
 
-        # Create access and refresh tokens using AuthX
-        access_token = self.authx.create_access_token(
-            uid=user.id,
-            expiry=self.authx.config.JWT_ACCESS_TOKEN_EXPIRES
-        )
-        refresh_token = self.authx.create_refresh_token(
-            uid=user.id,
-            expiry=self.authx.config.JWT_REFRESH_TOKEN_EXPIRES
-        )
+        # Try to create access and refresh tokens using AuthX
+        try:
+            access_token = self.authx.create_access_token(
+                uid=user.id,
+                expiry=self.authx.config.JWT_ACCESS_TOKEN_EXPIRES
+            )
+            refresh_token = self.authx.create_refresh_token(
+                uid=user.id,
+                expiry=self.authx.config.JWT_REFRESH_TOKEN_EXPIRES
+            )
 
-        # Return the access and refresh tokens for the authenticated user
-        return AuthenticatedDto(
-            access_token=access_token,
-            refresh_token=refresh_token
-        )
+            # Return the access and refresh tokens for the authenticated user
+            return AuthenticatedDto(
+                access_token=access_token,
+                refresh_token=refresh_token
+            )
+        
+        except Exception as e:
+            raise HTTPException(status_code=401, detail=str(e))
+
     
     async def login(self, request: LoginDto) -> AuthenticatedDto:
         # Find user by email
@@ -104,8 +109,8 @@ class AuthService:
             except FacialEmbeddingError as e:
                 raise HTTPException(status_code=400, detail=str(e))
         
+        # Try to create access and refresh tokens using AuthX
         try:
-            # Create access and refresh tokens using AuthX
             access_token = self.authx.create_access_token(
                 uid=db_user.id,
                 expiry=self.authx.config.JWT_ACCESS_TOKEN_EXPIRES
@@ -120,9 +125,11 @@ class AuthService:
                 access_token=access_token,
                 refresh_token=refresh_token
             )
+        
         except Exception as e:
             raise HTTPException(status_code=401, detail=str(e))
     
+
     async def refresh(self, request: Request, refresh_data: RefreshTokenDto = None) -> NewAccessTokenDto:
         # Try to get token from Authorization header
         auth_header = request.headers.get("Authorization")
@@ -152,6 +159,7 @@ class AuthService:
 
             # Return the new access token
             return NewAccessTokenDto(access_token=access_token)
+        
         except Exception as e:
             raise HTTPException(status_code=401, detail=str(e))
     
