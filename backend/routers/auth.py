@@ -1,6 +1,6 @@
 from fastapi import APIRouter, Form, Request
 from dependencies import AuthServiceDep
-from schemas import LoginDto, RegisterDto, AuthenticatedDto, RefreshTokenDto, NewAccessTokenDto
+from schemas import LoginDto, RegisterDto, AuthenticatedDto, RefreshTokenDto, NewAccessTokenDto, UserDto
 from typing import Optional
 
 router = APIRouter(prefix="/auth", tags=["auth"])
@@ -26,3 +26,10 @@ async def refresh(
     refresh_data: RefreshTokenDto = None
 ):
     return await auth_service.refresh(request, refresh_data)
+
+@router.get("/me", response_model=UserDto)
+async def get_current_user(
+    auth_service: AuthServiceDep,
+    request: Request
+):
+    return await auth_service.get_current_user(request)
