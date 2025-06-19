@@ -3,7 +3,7 @@ from sqlmodel import Session, select
 from models import User, BiometricProfile
 from schemas import LoginDto, RegisterDto, AuthenticatedDto, RefreshTokenDto, NewAccessTokenDto, UserDto
 from utils.deepface_utils import generate_facial_embedding, verify_facial_embeddings
-from errors.facial_embedding_error import FacialEmbeddingError
+from errors.FacialEmbeddingError import FacialEmbeddingError
 from argon2 import PasswordHasher
 from authx import AuthX, TokenPayload, RequestToken
 from authx.types import TokenLocation
