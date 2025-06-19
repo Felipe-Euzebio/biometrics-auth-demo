@@ -5,7 +5,8 @@ from schemas import LoginDto, RegisterDto, AuthenticatedDto, RefreshTokenDto, Ne
 from utils.deepface_utils import generate_facial_embedding, verify_facial_embeddings
 from errors.facial_embedding_error import FacialEmbeddingError
 from argon2 import PasswordHasher
-from authx import AuthX, TokenPayload
+from authx import AuthX, TokenPayload, RequestToken
+from authx.types import TokenLocation
 
 # Create password hasher instance here to avoid circular import
 _ph = PasswordHasher(
@@ -80,7 +81,7 @@ class AuthService:
             raise HTTPException(status_code=400, detail=str(e.message))
         
         except Exception as e:
-            raise HTTPException(status_code=401, detail=e)
+            raise HTTPException(status_code=401, detail=str(e))
     
     async def login(self, request: LoginDto) -> AuthenticatedDto:
         try:
@@ -130,7 +131,7 @@ class AuthService:
             raise HTTPException(status_code=400, detail=str(e))
         
         except Exception as e:
-            raise HTTPException(status_code=401, detail=e)
+            raise HTTPException(status_code=401, detail=str(e))
     
     async def refresh(
         self, 
@@ -140,14 +141,17 @@ class AuthService:
         try:
             # Get the token from the Authorization header
             auth_header = request.headers.get("Authorization")
-            token = None
+            token: str = None
+            token_location: TokenLocation = None
 
             # If the Authorization header is present, extract the token.
             # If the Authorization header is not present, check if the token is provided in the request body.
             if auth_header and auth_header.startswith("Bearer "):
                 token = auth_header.split(" ")[1]
+                token_location = "headers"
             elif refresh_data and refresh_data.refresh_token:
                 token = refresh_data.refresh_token
+                token_location = "json"
 
             # If no token is found, raise an error
             if not token:
@@ -155,14 +159,13 @@ class AuthService:
             
             # Verify the refresh token
             refresh_payload: TokenPayload = self.authx.verify_token(
-                token,
-                verify_type=True,
-                type="refresh"
+                token=RequestToken(token=token, location=token_location, type="refresh"),
+                verify_type=True
             )
 
             # Create new access token
             access_token = self.authx.create_access_token(
-                uid=str(refresh_payload.uid),
+                uid=str(refresh_payload.sub),
                 expiry=self.authx.config.JWT_ACCESS_TOKEN_EXPIRES
             )
 
@@ -173,7 +176,7 @@ class AuthService:
             raise e
         
         except Exception as e:
-            raise HTTPException(status_code=401, detail=e)
+            raise HTTPException(status_code=401, detail=str(e))
         
     async def get_current_user(self, request: Request) -> UserDto:
         try:
@@ -183,13 +186,12 @@ class AuthService:
 
             # Verify the access token
             token_payload: TokenPayload = self.authx.verify_token(
-                token,
-                verify_type=True,
-                type="access"
+                token=RequestToken(token=token, location="headers"),
+                verify_type=True
             )
 
             # Fetch the user by ID from the database
-            user = self.session.get(User, token_payload.uid)
+            user = self.session.get(User, token_payload.sub)
 
             # If the user is not found, raise an error
             if not user:
@@ -201,6 +203,6 @@ class AuthService:
             raise e
         
         except Exception as e:
-            raise HTTPException(status_code=401, detail=e)
+            raise HTTPException(status_code=401, detail=str(e))
 
     
