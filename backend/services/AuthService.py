@@ -179,15 +179,7 @@ class AuthService:
         try:
             # Get the token from the Authorization header
             auth_header = request.headers.get("Authorization")
-            token = None
-
-            # If the Authorization header is present, extract the token.
-            if auth_header and auth_header.startswith("Bearer "):
-                token = auth_header.split(" ")[1]
-
-            # If no token is found, raise an error
-            if not token:
-                raise HTTPException(status_code=401, detail="Authorization token is required")
+            token = auth_header.split(" ")[1]
 
             # Verify the access token
             token_payload: TokenPayload = self.authx.verify_token(
