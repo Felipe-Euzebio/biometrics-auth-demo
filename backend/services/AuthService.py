@@ -1,7 +1,7 @@
 from fastapi import HTTPException, Request
 from sqlmodel import Session, select
 from models import User, BiometricProfile
-from schemas import LoginDto, RegisterDto, AuthenticatedDto, RefreshTokenDto, NewAccessTokenDto
+from schemas import LoginDto, RegisterDto, AuthenticatedDto, RefreshTokenDto, NewAccessTokenDto, UserDto
 from utils.deepface_utils import generate_facial_embedding, verify_facial_embeddings
 from errors.facial_embedding_error import FacialEmbeddingError
 from argon2 import PasswordHasher
@@ -174,4 +174,41 @@ class AuthService:
         
         except Exception as e:
             raise HTTPException(status_code=401, detail=e)
+        
+    async def get_current_user(self, request: Request) -> UserDto:
+        try:
+            # Get the token from the Authorization header
+            auth_header = request.headers.get("Authorization")
+            token = None
+
+            # If the Authorization header is present, extract the token.
+            if auth_header and auth_header.startswith("Bearer "):
+                token = auth_header.split(" ")[1]
+
+            # If no token is found, raise an error
+            if not token:
+                raise HTTPException(status_code=401, detail="Authorization token is required")
+
+            # Verify the access token
+            token_payload: TokenPayload = self.authx.verify_token(
+                token,
+                verify_type=True,
+                type="access"
+            )
+
+            # Fetch the user by ID from the database
+            user = self.session.get(User, token_payload.uid)
+
+            # If the user is not found, raise an error
+            if not user:
+                raise HTTPException(status_code=404, detail="User not found")
+
+            return UserDto.model_validate(user)
+        
+        except HTTPException as e:
+            raise e
+        
+        except Exception as e:
+            raise HTTPException(status_code=401, detail=e)
+
     
