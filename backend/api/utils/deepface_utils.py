@@ -4,8 +4,8 @@ from deepface import DeepFace
 from deepface.modules.verification import find_cosine_distance, find_threshold
 from PIL import Image
 from fastapi import UploadFile
-from errors.FacialEmbeddingError import FacialEmbeddingError
-from constants import DEFAULT_MODEL_NAME
+from api.errors.FacialEmbeddingError import FacialEmbeddingError
+from api.constants import DEFAULT_MODEL_NAME
 
 def generate_facial_embedding(image_file: UploadFile) -> bytes:
     """

@@ -1,5 +1,5 @@
 from sqlmodel import SQLModel, create_engine, Session
-import models # Side-effect import to ensure models are registered
+from api import models # Side-effect import to ensure models are registered
 
 # Database URL - using SQLite for simplicity
 DATABASE_URL = "sqlite:///biometrics_auth.db"

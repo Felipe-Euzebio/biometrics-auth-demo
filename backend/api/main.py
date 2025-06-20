@@ -2,10 +2,10 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.openapi.utils import get_openapi
 from contextlib import asynccontextmanager
-from database import create_db_and_tables
-from routers import hello, auth
-from dependencies import authx
-from config import settings
+from api.database import create_db_and_tables
+from api.routers import hello, auth
+from api.dependencies import authx
+from api.config import settings
 
 # Lifespan for database initialization
 @asynccontextmanager

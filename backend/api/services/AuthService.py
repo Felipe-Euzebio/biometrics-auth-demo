@@ -1,9 +1,9 @@
 from fastapi import HTTPException, Request
 from sqlmodel import Session, select
-from models import User, BiometricProfile
-from schemas import LoginDto, RegisterDto, AuthenticatedDto, RefreshTokenDto, NewAccessTokenDto, UserDto
-from utils.deepface_utils import generate_facial_embedding, verify_facial_embeddings
-from errors.FacialEmbeddingError import FacialEmbeddingError
+from api.models import User, BiometricProfile
+from api.schemas import LoginDto, RegisterDto, AuthenticatedDto, RefreshTokenDto, NewAccessTokenDto, UserDto
+from api.utils.deepface_utils import generate_facial_embedding, verify_facial_embeddings
+from api.errors.FacialEmbeddingError import FacialEmbeddingError
 from argon2 import PasswordHasher
 from authx import AuthX, TokenPayload, RequestToken
 from authx.types import TokenLocation

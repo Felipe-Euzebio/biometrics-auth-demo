@@ -1,7 +1,7 @@
 from typing import Annotated
 from pydantic import BaseModel, Field, EmailStr, field_validator
 from fastapi import UploadFile
-from validators.image_validators import validate_image_data
+from api.validators.image_validators import validate_image_data
 
 # DTO for user registration
 class RegisterDto(BaseModel):

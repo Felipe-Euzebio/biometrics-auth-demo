@@ -1,10 +1,10 @@
 from typing import Annotated
 from fastapi import Depends
 from sqlmodel import Session
-from database import get_session
-from services import AuthService
+from api.database import get_session
+from api.services import AuthService
 from authx import AuthX, AuthXConfig
-from config import settings
+from api.config import settings
 
 # Database session dependency that can be used across all routers
 SessionDep = Annotated[Session, Depends(get_session)]

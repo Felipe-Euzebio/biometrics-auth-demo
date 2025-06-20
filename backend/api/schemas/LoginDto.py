@@ -1,7 +1,7 @@
 from typing import Optional, Annotated
 from pydantic import BaseModel, Field, EmailStr, field_validator, model_validator
 from fastapi import UploadFile
-from validators.image_validators import validate_image_data
+from api.validators.image_validators import validate_image_data
 
 # DTO for login with either password or facial recognition
 class LoginDto(BaseModel):

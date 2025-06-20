@@ -2,7 +2,7 @@ import io
 from typing import Optional
 from fastapi import UploadFile
 from PIL import Image, UnidentifiedImageError
-from constants import ALLOWED_IMAGE_FORMATS, MAX_IMAGE_SIZE_MB, MIN_IMAGE_RESOLUTION, MAX_IMAGE_RESOLUTION
+from api.constants import ALLOWED_IMAGE_FORMATS, MAX_IMAGE_SIZE_MB, MIN_IMAGE_RESOLUTION, MAX_IMAGE_RESOLUTION
 
 def validate_image_data(image_data: Optional[UploadFile]) -> Optional[UploadFile]:
     if image_data is None:

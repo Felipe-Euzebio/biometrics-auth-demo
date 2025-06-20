@@ -1,6 +1,6 @@
 from fastapi import APIRouter, Form, Request, Depends
-from dependencies import AuthServiceDep, authx
-from schemas import LoginDto, RegisterDto, AuthenticatedDto, RefreshTokenDto, NewAccessTokenDto, UserDto
+from api.dependencies import AuthServiceDep, authx
+from api.schemas import LoginDto, RegisterDto, AuthenticatedDto, RefreshTokenDto, NewAccessTokenDto, UserDto
 
 router = APIRouter(prefix="/auth", tags=["auth"])
 

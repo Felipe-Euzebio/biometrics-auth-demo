@@ -2,7 +2,7 @@ import io
 import base64
 from PIL import Image
 from typing import Optional
-from constants import ALLOWED_IMAGE_FORMATS
+from api.constants import ALLOWED_IMAGE_FORMATS
 
 def validate_base64_image(image_data: str) -> tuple[bool, Optional[Exception]]:
     """
