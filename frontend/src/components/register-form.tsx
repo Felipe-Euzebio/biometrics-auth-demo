@@ -6,6 +6,7 @@ import { registerFormSchema, RegisterFormSchema } from "@/schemas/user";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
+import Link from "next/link";
 
 interface RegisterFormProps {
   onSubmit: (data: RegisterFormSchema) => void;
@@ -111,9 +112,9 @@ export default function RegisterForm({
         
         <div className="mt-4 text-center text-sm">
           Already have an account?{" "}
-          <a href="#" className="underline underline-offset-4">
+          <Link href="/login" className="underline underline-offset-4">
             Sign in
-          </a>
+          </Link>
         </div>
       </form>
     </Form>
