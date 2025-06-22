@@ -25,7 +25,7 @@ const userSchema = z.object({
   imageData: imageValidationSchema,
 });
 
-export const registerSchema = userSchema
+export const registerFormSchema = userSchema
   .extend({ 
     confirmPassword: z.string() 
   })
@@ -35,4 +35,4 @@ export const registerSchema = userSchema
     path: ["confirmPassword"],
   });
 
-export type RegisterSchema = z.infer<typeof registerSchema>;
+export type RegisterFormSchema = z.infer<typeof registerFormSchema>;
