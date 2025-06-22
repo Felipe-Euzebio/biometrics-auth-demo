@@ -7,6 +7,7 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
+import AvatarInput from "@/components/avatar-input";
 
 interface RegisterFormProps {
   onSubmit: (data: RegisterFormSchema) => void;
@@ -29,6 +30,19 @@ export default function RegisterForm({
     <Form {...form}>
       <form onSubmit={form.handleSubmit(onSubmit)}>
         <div className="flex flex-col gap-6">
+          <FormField
+            control={form.control}
+            name="imageData"
+            render={({ field }) => (
+              <FormItem>
+                <FormControl>
+                  <AvatarInput field={field} />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+          
           <FormField
             control={form.control}
             name="email"
@@ -73,28 +87,6 @@ export default function RegisterForm({
                 <FormControl>
                   <Input
                     type="password"
-                    {...field}
-                  />
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-
-          <FormField
-            control={form.control}
-            name="imageData"
-            render={({ field: { onChange, value, ...field } }) => (
-              <FormItem>
-                <FormLabel>Profile Image</FormLabel>
-                <FormControl>
-                  <Input
-                    type="file"
-                    accept="image/jpeg,image/png,image/webp"
-                    onChange={(e) => {
-                      const file = e.target.files?.[0];
-                      onChange(file);
-                    }}
                     {...field}
                   />
                 </FormControl>
