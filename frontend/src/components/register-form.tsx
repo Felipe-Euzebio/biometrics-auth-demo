@@ -8,6 +8,8 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
 import AvatarInput from "@/components/avatar-input";
+import PasswordInput from "@/components/password-input";
+import { useState } from "react";
 
 interface RegisterFormProps {
   onSubmit: (data: RegisterFormSchema) => void;
@@ -16,6 +18,8 @@ interface RegisterFormProps {
 export default function RegisterForm({ 
   onSubmit 
 }: RegisterFormProps) {
+  const [showPassword, setShowPassword] = useState(false);
+
   const form = useForm<RegisterFormSchema>({
     resolver: zodResolver(registerFormSchema),
     defaultValues: {
@@ -68,9 +72,10 @@ export default function RegisterForm({
               <FormItem>
                 <FormLabel>Password</FormLabel>
                 <FormControl>
-                  <Input
-                    type="password"
-                    {...field}
+                  <PasswordInput
+                    field={field}
+                    onShowPassword={setShowPassword}
+                    showPassword={showPassword}
                   />
                 </FormControl>
                 <FormMessage />
@@ -85,9 +90,10 @@ export default function RegisterForm({
               <FormItem>
                 <FormLabel>Confirm Password</FormLabel>
                 <FormControl>
-                  <Input
-                    type="password"
-                    {...field}
+                  <PasswordInput
+                    field={field}
+                    onShowPassword={setShowPassword}
+                    showPassword={showPassword}
                   />
                 </FormControl>
                 <FormMessage />
