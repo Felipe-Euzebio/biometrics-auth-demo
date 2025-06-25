@@ -11,6 +11,7 @@ import {
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { CameraIcon } from "lucide-react";
+import { toast } from "sonner";
 
 // Convert DataURL to File
 function dataUrlToFile(dataURL: string): File {
@@ -48,6 +49,12 @@ export default function WebcamCapture({ onCapture }: WebcamCaptureProps) {
     }
   }, [onCapture]);
 
+  const onUserMediaError = (e: string | DOMException) => {
+    const message = e instanceof DOMException ? e.message : e;
+    console.error(e);
+    toast.error(message)
+  }
+
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
@@ -64,6 +71,7 @@ export default function WebcamCapture({ onCapture }: WebcamCaptureProps) {
           audio={false}
           className="w-full h-full object-cover rounded-2xl"
           videoConstraints={{ facingMode: "user" }}
+          onUserMediaError={onUserMediaError}
         />
         <DialogFooter className="sm:justify-center gap-2">
           <DialogClose asChild>
