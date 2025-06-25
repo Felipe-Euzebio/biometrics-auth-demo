@@ -1,4 +1,4 @@
-import { useRef, useCallback } from "react";
+import { useState, useRef, useCallback } from "react";
 import Webcam from "react-webcam";
 import {
   Dialog,
@@ -34,6 +34,7 @@ interface WebcamCaptureProps {
 }
 
 export default function WebcamCapture({ onCapture }: WebcamCaptureProps) {
+  const [open, setOpen] = useState(false);
   const webcamRef = useRef<Webcam>(null);
 
   const capture = useCallback(() => {
@@ -42,12 +43,13 @@ export default function WebcamCapture({ onCapture }: WebcamCaptureProps) {
       if (imageSrc) {
         const file = dataUrlToFile(imageSrc);
         onCapture({ imageSrc, file });
+        setOpen(false);
       }
     }
   }, [onCapture]);
 
   return (
-    <Dialog>
+    <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
         <Button type="button" variant="ghost" className="justify-start gap-2">
           <CameraIcon className="w-4 h-4" /> Use Camera
