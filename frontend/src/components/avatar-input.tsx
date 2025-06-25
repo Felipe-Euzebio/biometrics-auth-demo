@@ -4,8 +4,9 @@ import { useRef, useState } from "react";
 import { ControllerRenderProps, FieldPath, FieldValues } from "react-hook-form";
 import { Popover, PopoverTrigger, PopoverContent } from "@/components/ui/popover";
 import { Button } from "@/components/ui/button";
-import { CameraIcon, UploadIcon, UserIcon } from "lucide-react";
+import { UploadIcon, UserIcon } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@radix-ui/react-avatar";
+import WebcamCapture, { ScreenshotData } from "@/components/webcam-capture";
 
 interface AvatarInputProps<
   TFieldValues extends FieldValues = FieldValues,
@@ -34,6 +35,12 @@ export default function AvatarInput<
     }
   };
 
+  // Handle webcam capture
+  const handleWebcamCapture = (data: ScreenshotData) => {
+    setAvatarUrl(data.imageSrc);
+    field.onChange(data.file);
+  };
+
   // Handle upload button click
   const handleUploadClick = () => {
     fileInputRef.current?.click();
@@ -59,14 +66,7 @@ export default function AvatarInput<
           </button>
         </PopoverTrigger>
         <PopoverContent className="w-48 flex flex-col gap-2">
-          <Button
-            type="button"
-            variant="ghost"
-            className="justify-start gap-2"
-            onClick={() => {/* Camera logic placeholder */}}
-          >
-            <CameraIcon className="w-4 h-4" /> Use Camera
-          </Button>
+          <WebcamCapture onCapture={handleWebcamCapture}/>
           <Button
             type="button"
             variant="ghost"
