@@ -60,7 +60,7 @@ export default function WebcamCapture({ onCapture }: WebcamCaptureProps) {
         <Webcam
           ref={webcamRef}
           audio={false}
-          className="w-full h-full object-cover"
+          className="w-full h-full object-cover rounded-2xl"
           videoConstraints={{ facingMode: "user" }}
         />
         <DialogFooter className="sm:justify-center gap-2">
