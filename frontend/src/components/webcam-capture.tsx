@@ -38,22 +38,26 @@ export default function WebcamCapture({ onCapture }: WebcamCaptureProps) {
   const [open, setOpen] = useState(false);
   const webcamRef = useRef<Webcam>(null);
 
+  const showError = (e?: string | DOMException) => {
+    toast.error("Oops! An error occured when taking your picture", {
+      description: "Verify your browser permissions and check your media device",
+    });
+    e && console.error(e);
+  }; 
+
   const capture = useCallback(() => {
     if (webcamRef.current) {
       const imageSrc = webcamRef.current.getScreenshot();
+      
       if (imageSrc) {
         const file = dataUrlToFile(imageSrc);
         onCapture({ imageSrc, file });
         setOpen(false);
+      } else {
+        showError();
       }
     }
   }, [onCapture]);
-
-  const onUserMediaError = (e: string | DOMException) => {
-    const message = e instanceof DOMException ? e.message : e;
-    console.error(e);
-    toast.error(message)
-  }
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
@@ -71,7 +75,7 @@ export default function WebcamCapture({ onCapture }: WebcamCaptureProps) {
           audio={false}
           className="w-full h-full object-cover rounded-2xl"
           videoConstraints={{ facingMode: "user" }}
-          onUserMediaError={onUserMediaError}
+          onUserMediaError={e => showError(e)}
         />
         <DialogFooter className="sm:justify-center gap-2">
           <DialogClose asChild>
