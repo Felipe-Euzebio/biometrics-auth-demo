@@ -10,7 +10,7 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import { CameraIcon } from "lucide-react";
+import { CameraIcon, VideoOffIcon } from "lucide-react";
 import { toast } from "sonner";
 
 // Convert DataURL to File
@@ -70,13 +70,26 @@ export default function WebcamCapture({ onCapture }: WebcamCaptureProps) {
         <DialogHeader>
           <DialogTitle className="sr-only"></DialogTitle>
         </DialogHeader>
-        <Webcam
-          ref={webcamRef}
-          audio={false}
-          className="w-full h-full object-cover rounded-2xl"
-          videoConstraints={{ facingMode: "user" }}
-          onUserMediaError={e => showError(e)}
-        />
+        <div className="w-full flex justify-center">
+          <div className="w-48 h-64 rounded-2xl overflow-hidden bg-gray-100 relative">
+            {/* Background content */}
+            <div className="absolute inset-0 flex items-center justify-center">
+              <VideoOffIcon className="w-12 h-12 text-gray-400" />
+            </div>
+            
+            {/* Foreground content */}
+            <Webcam
+              ref={webcamRef}
+              audio={false}
+              className="w-full h-full object-cover relative z-10"
+              videoConstraints={{ 
+                facingMode: "user",
+                aspectRatio: 3/4,
+              }}
+              onUserMediaError={e => showError(e)}
+            />
+          </div>
+        </div>
         <DialogFooter className="sm:justify-center gap-2">
           <DialogClose asChild>
             <Button variant="outline" className="flex-1">Cancel</Button>
