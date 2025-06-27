@@ -1,8 +1,9 @@
-from fastapi import HTTPException, Request
+from fastapi import Request
 from sqlmodel import Session, select
 from api.models import User, BiometricProfile
 from api.schemas import LoginDto, RegisterDto, AuthenticatedDto, RefreshTokenDto, NewAccessTokenDto, UserDto
 from api.utils.deepface_utils import generate_facial_embedding, verify_facial_embeddings
+from api.errors import BadRequestError, UnauthorizedError, NotFoundError, InternalServerError
 from argon2 import PasswordHasher
 from authx import AuthX, TokenPayload, RequestToken
 from authx.types import TokenLocation
@@ -29,7 +30,7 @@ class AuthService:
         try:
             # If the user already exists, raise an error
             if await self._get_user_by_email(request.email):
-                raise HTTPException(status_code=400, detail="User already exists")
+                raise BadRequestError("User already exists")
             
             # Generate facial embedding first to validate the image data
             facial_embedding = generate_facial_embedding(request.image_data)
@@ -73,14 +74,14 @@ class AuthService:
                 refresh_token=refresh_token
             )
         
-        except HTTPException as e:
+        except (BadRequestError, UnauthorizedError, NotFoundError) as e:
             raise e
         
         except ValueError as e:
-            raise HTTPException(status_code=400, detail=str(e))
+            raise BadRequestError(str(e))
         
         except Exception as e:
-            raise HTTPException(status_code=401, detail=str(e))
+            raise InternalServerError(str(e))
     
     async def login(self, request: LoginDto) -> AuthenticatedDto:
         try:
@@ -88,24 +89,24 @@ class AuthService:
 
             # If the user with the provided email doesn't exist, raise an error
             if not user:
-                raise HTTPException(status_code=400, detail="Invalid email or password")
+                raise BadRequestError("Invalid email or password")
             
             # If password is provided, verify it
             if request.password and not _ph.verify(user.password, request.password):
-                raise HTTPException(status_code=400, detail="Invalid email or password")
+                raise BadRequestError("Invalid email or password")
             
             # If image_data is provided, generate facial embedding
             if request.image_data:
                 # If the user doesn't have a biometric profile, raise an error
                 if not user.biometric_profile:
-                    raise HTTPException(status_code=400, detail="No biometric profile found for this user")
+                    raise BadRequestError("No biometric profile found for this user")
                 
                 # Generate embedding from uploaded image
                 facial_embedding = generate_facial_embedding(request.image_data)
 
                 # Verify the facial embedding against the stored profile
                 if not verify_facial_embeddings(facial_embedding, user.biometric_profile.facial_embedding):
-                    raise HTTPException(status_code=400, detail="Facial authentication failed")
+                    raise BadRequestError("Facial authentication failed")
             
             # Create access and refresh tokens using AuthX
             access_token = self.authx.create_access_token(
@@ -123,14 +124,14 @@ class AuthService:
                 refresh_token=refresh_token
             )
         
-        except HTTPException as e:
+        except (BadRequestError, UnauthorizedError, NotFoundError) as e:
             raise e
         
         except ValueError as e:
-            raise HTTPException(status_code=400, detail=str(e))
+            raise BadRequestError(str(e))
         
         except Exception as e:
-            raise HTTPException(status_code=401, detail=str(e))
+            raise InternalServerError(str(e))
     
     async def refresh(
         self, 
@@ -154,7 +155,7 @@ class AuthService:
 
             # If no token is found, raise an error
             if not token:
-                raise HTTPException(status_code=400, detail="Refresh token is required")
+                raise BadRequestError("Refresh token is required")
             
             # Verify the refresh token
             refresh_payload: TokenPayload = self.authx.verify_token(
@@ -171,11 +172,11 @@ class AuthService:
             # Return the new access token
             return NewAccessTokenDto(access_token=access_token)
         
-        except HTTPException as e:
+        except (BadRequestError, UnauthorizedError, NotFoundError) as e:
             raise e
         
         except Exception as e:
-            raise HTTPException(status_code=401, detail=str(e))
+            raise InternalServerError(str(e))
         
     async def get_current_user(self, request: Request) -> UserDto:
         try:
@@ -194,14 +195,14 @@ class AuthService:
 
             # If the user is not found, raise an error
             if not user:
-                raise HTTPException(status_code=404, detail="User not found")
+                raise NotFoundError("User not found")
 
             return UserDto.model_validate(user)
         
-        except HTTPException as e:
+        except (BadRequestError, UnauthorizedError, NotFoundError) as e:
             raise e
         
         except Exception as e:
-            raise HTTPException(status_code=401, detail=str(e))
+            raise InternalServerError(str(e))
 
     
