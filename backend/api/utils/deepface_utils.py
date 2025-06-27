@@ -4,7 +4,6 @@ from deepface import DeepFace
 from deepface.modules.verification import find_cosine_distance, find_threshold
 from PIL import Image
 from fastapi import UploadFile
-from api.errors.FacialEmbeddingError import FacialEmbeddingError
 from api.constants import DEFAULT_MODEL_NAME
 
 def generate_facial_embedding(image_file: UploadFile) -> bytes:
@@ -18,7 +17,7 @@ def generate_facial_embedding(image_file: UploadFile) -> bytes:
         bytes: Facial embedding as a byte array
     
     Raises:
-        FacialEmbeddingError: If the image cannot be processed or embedding generation fails
+        ValueError: If the image cannot be processed or embedding generation fails
     """
     try:
         # Read image data
@@ -46,17 +45,11 @@ def generate_facial_embedding(image_file: UploadFile) -> bytes:
         
         # DeepFace.represent returns a list of dictionaries, extract the embedding vector
         if not embedding_result:
-            raise FacialEmbeddingError(
-                message="No face detected in the provided image.",
-                detail=None
-            )
+            raise ValueError("No face detected in the provided image.")
         
         # Check if multiple faces are detected (only one face is allowed for biometric authentication)
         if len(embedding_result) > 1:
-            raise FacialEmbeddingError(
-                message=f"Multiple faces detected in the image. Only one face is allowed for biometric authentication. Found {len(embedding_result)} faces.",
-                detail=None
-            )
+            raise ValueError(f"Multiple faces detected in the image. Only one face is allowed for biometric authentication. Found {len(embedding_result)} faces.")
         
         # Get the first face's embedding (assuming single face)
         embedding_vector = embedding_result[0]["embedding"]
@@ -67,11 +60,8 @@ def generate_facial_embedding(image_file: UploadFile) -> bytes:
 
         return embedding_bytes
     
-    except FacialEmbeddingError as e:
-        raise FacialEmbeddingError(
-            message="Failed to generate facial embedding from the provided image.",
-            detail=e
-        )
+    except ValueError as e:
+        raise ValueError(f"Failed to generate facial embedding from the provided image.")
     
 def verify_facial_embeddings(
     embedding1: bytes,
