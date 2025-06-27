@@ -3,7 +3,6 @@ from sqlmodel import Session, select
 from api.models import User, BiometricProfile
 from api.schemas import LoginDto, RegisterDto, AuthenticatedDto, RefreshTokenDto, NewAccessTokenDto, UserDto
 from api.utils.deepface_utils import generate_facial_embedding, verify_facial_embeddings
-from api.errors.FacialEmbeddingError import FacialEmbeddingError
 from argon2 import PasswordHasher
 from authx import AuthX, TokenPayload, RequestToken
 from authx.types import TokenLocation
@@ -77,8 +76,8 @@ class AuthService:
         except HTTPException as e:
             raise e
         
-        except FacialEmbeddingError as e:
-            raise HTTPException(status_code=400, detail=str(e.message))
+        except ValueError as e:
+            raise HTTPException(status_code=400, detail=str(e))
         
         except Exception as e:
             raise HTTPException(status_code=401, detail=str(e))
@@ -127,7 +126,7 @@ class AuthService:
         except HTTPException as e:
             raise e
         
-        except FacialEmbeddingError as e:
+        except ValueError as e:
             raise HTTPException(status_code=400, detail=str(e))
         
         except Exception as e:
