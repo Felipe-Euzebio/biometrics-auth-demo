@@ -7,6 +7,7 @@ from api.errors import BadRequestError, UnauthorizedError, NotFoundError, Intern
 from argon2 import PasswordHasher
 from authx import AuthX, TokenPayload, RequestToken
 from authx.types import TokenLocation
+from authx.exceptions import InvalidToken, JWTDecodeError, TokenTypeError, AccessTokenRequiredError, FreshTokenRequiredError
 
 # Create password hasher instance here to avoid circular import
 _ph = PasswordHasher(
@@ -25,6 +26,57 @@ class AuthService:
     async def _get_user_by_email(self, email: str) -> User | None:
         statement = select(User).where(User.email == email)
         return self.session.exec(statement).first()
+    
+    def _generate_auth_tokens(self, user_id: str) -> tuple[str, str]:
+        """
+        Generate access and refresh tokens for a user.
+        
+        Args:
+            user_id: The user ID to generate tokens for
+            
+        Returns:
+            tuple[str, str]: (access_token, refresh_token)
+            
+        Raises:
+            InternalServerError: If token generation fails
+        """
+        try:
+            access_token = self.authx.create_access_token(
+                uid=user_id,
+                expiry=self.authx.config.JWT_ACCESS_TOKEN_EXPIRES
+            )
+            refresh_token = self.authx.create_refresh_token(
+                uid=user_id,
+                expiry=self.authx.config.JWT_REFRESH_TOKEN_EXPIRES
+            )
+            return access_token, refresh_token
+        except Exception as e:
+            raise InternalServerError(f"Failed to generate authentication tokens: {str(e)}")
+    
+    def _verify_token(self, token: str, location: TokenLocation, token_type: str = "access") -> TokenPayload:
+        """
+        Verify a JWT token and return the payload.
+        
+        Args:
+            token: The JWT token to verify
+            location: Where the token was found (headers, json, etc.)
+            token_type: The expected token type (access, refresh)
+            
+        Returns:
+            TokenPayload: The decoded token payload
+            
+        Raises:
+            UnauthorizedError: If token verification fails
+        """
+        try:
+            return self.authx.verify_token(
+                token=RequestToken(token=token, location=location, type=token_type),
+                verify_type=True
+            )
+        except (InvalidToken, JWTDecodeError, TokenTypeError, AccessTokenRequiredError, FreshTokenRequiredError) as e:
+            raise UnauthorizedError(f"Token verification failed: {str(e)}")
+        except Exception as e:
+            raise InternalServerError(f"Unexpected error during token verification: {str(e)}")
     
     async def register(self, request: RegisterDto) -> AuthenticatedDto:
         try:
@@ -58,15 +110,8 @@ class AuthService:
             self.session.commit()
             self.session.refresh(user)
 
-            # Create access and refresh tokens using AuthX
-            access_token = self.authx.create_access_token(
-                uid=str(user.id),
-                expiry=self.authx.config.JWT_ACCESS_TOKEN_EXPIRES
-            )
-            refresh_token = self.authx.create_refresh_token(
-                uid=str(user.id),
-                expiry=self.authx.config.JWT_REFRESH_TOKEN_EXPIRES
-            )
+            # Generate authentication tokens
+            access_token, refresh_token = self._generate_auth_tokens(str(user.id))
 
             # Return the access and refresh tokens for the authenticated user
             return AuthenticatedDto(
@@ -74,7 +119,10 @@ class AuthService:
                 refresh_token=refresh_token
             )
         
-        except (BadRequestError, UnauthorizedError, NotFoundError) as e:
+        except BadRequestError as e:
+            raise e
+        
+        except (UnauthorizedError, InternalServerError) as e:
             raise e
         
         except ValueError as e:
@@ -89,11 +137,11 @@ class AuthService:
 
             # If the user with the provided email doesn't exist, raise an error
             if not user:
-                raise BadRequestError("Invalid email or password")
+                raise UnauthorizedError("Invalid email or password")
             
             # If password is provided, verify it
             if request.password and not _ph.verify(user.password, request.password):
-                raise BadRequestError("Invalid email or password")
+                raise UnauthorizedError("Invalid email or password")
             
             # If image_data is provided, generate facial embedding
             if request.image_data:
@@ -106,17 +154,10 @@ class AuthService:
 
                 # Verify the facial embedding against the stored profile
                 if not verify_facial_embeddings(facial_embedding, user.biometric_profile.facial_embedding):
-                    raise BadRequestError("Facial authentication failed")
+                    raise UnauthorizedError("Facial authentication failed")
             
-            # Create access and refresh tokens using AuthX
-            access_token = self.authx.create_access_token(
-                uid=str(user.id),
-                expiry=self.authx.config.JWT_ACCESS_TOKEN_EXPIRES
-            )
-            refresh_token = self.authx.create_refresh_token(
-                uid=str(user.id),
-                expiry=self.authx.config.JWT_REFRESH_TOKEN_EXPIRES
-            )
+            # Generate authentication tokens
+            access_token, refresh_token = self._generate_auth_tokens(str(user.id))
 
             # Return the access and refresh tokens for the authenticated user
             return AuthenticatedDto(
@@ -124,7 +165,7 @@ class AuthService:
                 refresh_token=refresh_token
             )
         
-        except (BadRequestError, UnauthorizedError, NotFoundError) as e:
+        except (BadRequestError, UnauthorizedError, InternalServerError) as e:
             raise e
         
         except ValueError as e:
@@ -158,10 +199,7 @@ class AuthService:
                 raise BadRequestError("Refresh token is required")
             
             # Verify the refresh token
-            refresh_payload: TokenPayload = self.authx.verify_token(
-                token=RequestToken(token=token, location=token_location, type="refresh"),
-                verify_type=True
-            )
+            refresh_payload = self._verify_token(token, token_location, "refresh")
 
             # Create new access token
             access_token = self.authx.create_access_token(
@@ -172,7 +210,7 @@ class AuthService:
             # Return the new access token
             return NewAccessTokenDto(access_token=access_token)
         
-        except (BadRequestError, UnauthorizedError, NotFoundError) as e:
+        except (BadRequestError, UnauthorizedError, InternalServerError) as e:
             raise e
         
         except Exception as e:
@@ -185,10 +223,7 @@ class AuthService:
             token = auth_header.split(" ")[1]
 
             # Verify the access token
-            token_payload: TokenPayload = self.authx.verify_token(
-                token=RequestToken(token=token, location="headers"),
-                verify_type=True
-            )
+            token_payload = self._verify_token(token, "headers", "access")
 
             # Fetch the user by ID from the database
             user = self.session.get(User, token_payload.sub)
@@ -199,7 +234,7 @@ class AuthService:
 
             return UserDto.model_validate(user)
         
-        except (BadRequestError, UnauthorizedError, NotFoundError) as e:
+        except (NotFoundError, UnauthorizedError, InternalServerError) as e:
             raise e
         
         except Exception as e:
