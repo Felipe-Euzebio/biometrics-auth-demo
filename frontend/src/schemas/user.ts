@@ -17,7 +17,9 @@ const imageValidationSchema = z
 
 const userSchema = z.object({
   email: z.string().email("Invalid email address"),
-  password: z.string().min(8, "Must be at least 8 characters long")
+  password: z
+    .string()
+    .min(8, "Must be at least 8 characters long")
     .regex(/[a-z]/, "Must contain at least one lowercase letter")
     .regex(/[A-Z]/, "Must contain at least one uppercase letter")
     .regex(/[0-9]/, "Must contain at least one number")
@@ -26,8 +28,8 @@ const userSchema = z.object({
 });
 
 export const registerFormSchema = userSchema
-  .extend({ 
-    confirmPassword: z.string() 
+  .extend({
+    confirmPassword: z.string(),
   })
   .required()
   .refine((data) => data.password === data.confirmPassword, {
@@ -35,4 +37,16 @@ export const registerFormSchema = userSchema
     path: ["confirmPassword"],
   });
 
+export const loginFormSchema = userSchema.partial({
+  imageData: true,
+  password: true,
+});
+
 export type RegisterFormSchema = z.infer<typeof registerFormSchema>;
+
+export type LoginFormSchema = z.infer<typeof loginFormSchema>;
+
+export type AuthResponse = {
+  accessToken: string;
+  refreshToken: string;
+}
