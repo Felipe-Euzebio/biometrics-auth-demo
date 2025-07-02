@@ -1,7 +1,8 @@
-from fastapi import APIRouter, Form, Request, Depends
+from fastapi import APIRouter, Form, Request, Depends, Response
 from api.dependencies import AuthServiceDep, authx
 from api.schemas import LoginDto, RegisterDto, AuthenticatedDto, RefreshTokenDto, NewAccessTokenDto, UserDto
 from api.errors import HttpError
+from api.config import settings
 
 router = APIRouter(prefix="/auth", tags=["auth"])
 
@@ -14,10 +15,23 @@ router = APIRouter(prefix="/auth", tags=["auth"])
     }
 )
 async def register(
+    response: Response,
     auth_service: AuthServiceDep,
     request: RegisterDto = Form(..., media_type="multipart/form-data")
 ):
-    return await auth_service.register(request)
+    result = await auth_service.register(request)
+    session_token = auth_service.create_session_cookie(result.model_dump())
+    response.set_cookie(
+        key=settings.cookie_name,
+        value=session_token,
+        httponly=True,
+        secure=True,
+        samesite="strict",
+        max_age=settings.cookie_max_age,
+        path="/"
+    )
+    return result
+
 
 @router.post(
     "/login", 
@@ -29,10 +43,23 @@ async def register(
     }
 )
 async def login(
+    response: Response,
     auth_service: AuthServiceDep,
     request: LoginDto = Form(..., media_type="multipart/form-data"), 
 ):
-    return await auth_service.login(request)
+    result = await auth_service.login(request)
+    session_token = auth_service.create_session_cookie(result.model_dump())
+    response.set_cookie(
+        key=settings.cookie_name,
+        value=session_token,
+        httponly=True,
+        secure=True,
+        samesite="strict",
+        max_age=settings.cookie_max_age,
+        path="/"
+    )
+    return result
+
 
 @router.post(
     "/refresh", 
@@ -49,6 +76,7 @@ async def refresh(
     refresh_data: RefreshTokenDto = None
 ):
     return await auth_service.refresh(request, refresh_data)
+
 
 @router.get(
     "/me", 
