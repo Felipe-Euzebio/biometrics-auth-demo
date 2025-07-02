@@ -13,7 +13,7 @@ SessionDep = Annotated[Session, Depends(get_session)]
 authx_config = AuthXConfig(
     JWT_ALGORITHM=settings.jwt_algorithm,
     JWT_SECRET_KEY=settings.jwt_secret_key,
-    JWT_TOKEN_LOCATION=["headers", "json"],
+    JWT_TOKEN_LOCATION=["headers", "cookies"],
     JWT_ACCESS_TOKEN_EXPIRES=settings.jwt_access_token_expires,
     JWT_REFRESH_TOKEN_EXPIRES=settings.jwt_refresh_token_expires,
 )
