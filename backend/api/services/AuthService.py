@@ -8,6 +8,9 @@ from argon2 import PasswordHasher
 from authx import AuthX, TokenPayload, RequestToken
 from authx.types import TokenLocation
 from authx.exceptions import InvalidToken, JWTDecodeError, TokenTypeError, AccessTokenRequiredError, FreshTokenRequiredError
+from api.utils.serializer import serializer
+from api.config import settings
+from itsdangerous import BadSignature, SignatureExpired
 
 # Create password hasher instance here to avoid circular import
 _ph = PasswordHasher(
@@ -23,10 +26,12 @@ class AuthService:
         self.session = session
         self.authx = authx
 
+
     async def _get_user_by_email(self, email: str) -> User | None:
         statement = select(User).where(User.email == email)
         return self.session.exec(statement).first()
     
+
     def _generate_auth_tokens(self, user_id: str) -> tuple[str, str]:
         """
         Generate access and refresh tokens for a user.
@@ -53,6 +58,7 @@ class AuthService:
         except Exception as e:
             raise InternalServerError(f"Failed to generate authentication tokens: {str(e)}")
     
+
     def _verify_token(self, token: str, location: TokenLocation, token_type: str = "access") -> TokenPayload:
         """
         Verify a JWT token and return the payload.
@@ -78,6 +84,7 @@ class AuthService:
         except Exception as e:
             raise InternalServerError(f"Unexpected error during token verification: {str(e)}")
     
+
     async def register(self, request: RegisterDto) -> AuthenticatedDto:
         try:
             # If the user already exists, raise an error
@@ -131,6 +138,7 @@ class AuthService:
         except Exception as e:
             raise InternalServerError(str(e))
     
+
     async def login(self, request: LoginDto) -> AuthenticatedDto:
         try:
             user = await self._get_user_by_email(request.email)
@@ -174,6 +182,7 @@ class AuthService:
         except Exception as e:
             raise InternalServerError(str(e))
     
+
     async def refresh(
         self, 
         request: Request, 
@@ -216,6 +225,7 @@ class AuthService:
         except Exception as e:
             raise InternalServerError(str(e))
         
+
     async def get_current_user(self, request: Request) -> UserDto:
         try:
             # Get the token from the Authorization header
@@ -239,5 +249,23 @@ class AuthService:
         
         except Exception as e:
             raise InternalServerError(str(e))
+        
 
+    def create_session_cookie(self, data: dict) -> str:
+        return serializer.dumps(data)
     
+
+    def verify_session_cookie(
+        self, 
+        cookie: str, 
+        max_age: int = settings.cookie_max_age
+    ) -> dict:
+        try:
+            return serializer.loads(cookie, max_age=max_age)
+        except SignatureExpired:
+            raise UnauthorizedError("Session expired")
+        except BadSignature:
+            raise UnauthorizedError("Invalid session")
+        except Exception as e:
+            raise InternalServerError(str(e))
+        
