@@ -2,6 +2,7 @@ from pydantic_settings import BaseSettings
 from typing import Optional, Sequence
 from datetime import timedelta
 from authx.types import AlgorithmType
+from typing import Literal
 
 class Settings(BaseSettings):
     """Application settings with environment variable support."""
@@ -20,8 +21,12 @@ class Settings(BaseSettings):
 
     # Cookie Configuration
     cookie_secret_key: str = "your-cookie-secret-key-change-in-production"
-    cookie_name: str = "session"
-    cookie_max_age: int = 3600  # 1 hour
+    cookie_name: str = "refresh_token"
+    cookie_max_age: int = int(jwt_refresh_token_expires.total_seconds())
+    cookie_http_only: bool = True
+    cookie_secure: bool = True
+    cookie_samesite: Literal['lax', 'strict', 'none'] = 'strict'
+    cookie_path: str = '/'
     
     class Config:
         env_file = ".env"
