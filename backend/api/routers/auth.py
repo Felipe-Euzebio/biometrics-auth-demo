@@ -20,15 +20,14 @@ async def register(
     request: RegisterDto = Form(..., media_type="multipart/form-data")
 ):
     result = await auth_service.register(request)
-    session_token = auth_service.create_session_cookie(result.model_dump())
     response.set_cookie(
         key=settings.cookie_name,
-        value=session_token,
-        httponly=True,
-        secure=True,
-        samesite="strict",
+        value=result.refresh_token,
+        httponly=settings.cookie_http_only,
+        secure=settings.cookie_secure,
+        samesite=settings.cookie_samesite,
         max_age=settings.cookie_max_age,
-        path="/"
+        path=settings.cookie_path
     )
     return result
 
@@ -48,15 +47,14 @@ async def login(
     request: LoginDto = Form(..., media_type="multipart/form-data"), 
 ):
     result = await auth_service.login(request)
-    session_token = auth_service.create_session_cookie(result.model_dump())
     response.set_cookie(
         key=settings.cookie_name,
-        value=session_token,
-        httponly=True,
-        secure=True,
-        samesite="strict",
+        value=result.refresh_token,
+        httponly=settings.cookie_http_only,
+        secure=settings.cookie_secure,
+        samesite=settings.cookie_samesite,
         max_age=settings.cookie_max_age,
-        path="/"
+        path=settings.cookie_path
     )
     return result
 
