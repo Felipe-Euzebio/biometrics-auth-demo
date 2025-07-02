@@ -17,6 +17,11 @@ class Settings(BaseSettings):
     
     # CORS Configuration
     cors_origins: Sequence[str] = ["http://localhost:3000", "https://localhost:3001"]
+
+    # Cookie Configuration
+    cookie_secret_key: str = "your-cookie-secret-key-change-in-production"
+    cookie_name: str = "session"
+    cookie_max_age: int = 3600  # 1 hour
     
     class Config:
         env_file = ".env"
