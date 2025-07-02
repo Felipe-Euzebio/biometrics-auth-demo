@@ -8,8 +8,6 @@ from argon2 import PasswordHasher
 from authx import AuthX, TokenPayload, RequestToken
 from authx.types import TokenLocation
 from authx.exceptions import InvalidToken, JWTDecodeError, TokenTypeError, AccessTokenRequiredError, FreshTokenRequiredError
-from api.config import settings
-from itsdangerous import URLSafeTimedSerializer, BadSignature, SignatureExpired
 
 # Create password hasher instance here to avoid circular import
 _ph = PasswordHasher(
@@ -19,8 +17,6 @@ _ph = PasswordHasher(
     hash_len=32,          # Hash length (32 bytes = 256 bits)
     salt_len=16           # Salt length (16 bytes = 128 bits)
 )
-
-_serializer = URLSafeTimedSerializer(settings.cookie_secret_key) 
 
 class AuthService:
     def __init__(self, session: Session, authx: AuthX):
@@ -248,25 +244,6 @@ class AuthService:
         except (NotFoundError, UnauthorizedError, InternalServerError) as e:
             raise e
         
-        except Exception as e:
-            raise InternalServerError(str(e))
-        
-
-    def create_session_cookie(self, data: dict) -> str:
-        return _serializer.dumps(data)
-    
-
-    def verify_session_cookie(
-        self, 
-        cookie: str, 
-        max_age: int = settings.cookie_max_age
-    ) -> dict:
-        try:
-            return _serializer.loads(cookie, max_age=max_age)
-        except SignatureExpired:
-            raise UnauthorizedError("Session expired")
-        except BadSignature:
-            raise UnauthorizedError("Invalid session")
         except Exception as e:
             raise InternalServerError(str(e))
         
