@@ -5,6 +5,11 @@ from .LoginDto import LoginDto
 from .AuthenticatedDto import AuthenticatedDto
 from .RefreshTokenDto import RefreshTokenDto
 from .NewAccessTokenDto import NewAccessTokenDto
+from .errors.http_errors import (
+    HttpError,
+    ValidationError,
+    InternalServerError
+)
 
 __all__ = [
     "UserDto", 
@@ -12,5 +17,8 @@ __all__ = [
     "LoginDto", 
     "AuthenticatedDto", 
     "RefreshTokenDto", 
-    "NewAccessTokenDto"
+    "NewAccessTokenDto",
+    "HttpError",
+    "ValidationError",
+    "InternalServerError"
 ]
