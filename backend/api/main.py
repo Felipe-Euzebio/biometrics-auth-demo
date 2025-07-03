@@ -6,6 +6,13 @@ from api.database import create_db_and_tables
 from api.routers import hello, auth
 from api.dependencies import authx
 from api.config import settings
+from fastapi import HTTPException
+from fastapi.exceptions import RequestValidationError
+from api.errors.exception_handlers import (
+    http_exception_handler, 
+    validation_exception_handler, 
+    server_error_handler
+)
 
 # Lifespan for database initialization
 @asynccontextmanager
@@ -23,6 +30,11 @@ app = FastAPI(
     root_path="/api",  # Set the root path for the API
     lifespan=lifespan
 )
+
+# Register custom exception handlers
+app.add_exception_handler(RequestValidationError, validation_exception_handler)
+app.add_exception_handler(HTTPException, http_exception_handler)
+app.add_exception_handler(Exception, server_error_handler)
 
 # Configure AuthX error handling
 authx.handle_errors(app)
