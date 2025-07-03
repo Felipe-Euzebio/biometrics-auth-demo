@@ -1,34 +1,45 @@
 import useSWR from "swr";
-import { ApiError, FetchHookOptions, HttpMethod, QueryParams } from "@/types/api";
 import {
-  AuthResponse,
-  LoginFormSchema,
-  RegisterFormSchema,
-} from "@/schemas/user";
+  ApiError,
+  FetchHookOptions,
+  HttpMethod,
+  QueryParams,
+} from "@/types/api";
+import { LoginFormSchema, RegisterFormSchema } from "@/schemas/user";
 import { notFound } from "next/navigation";
+import { AuthResponse } from "@/types/user";
+import useUserStore from "@/store/user-store";
 
 const buildUrl = (path: string, query?: QueryParams) => {
-  const baseUrl = process.env.API_URL?.replace(/\/$/, '') || '';
-  const cleanPath = path.replace(/^\/+/, '');
+  const baseUrl = process.env.API_URL?.replace(/\/$/, "") || "";
+  const cleanPath = path.replace(/^\/+/, "");
   const url = new URL(cleanPath, `${baseUrl}/`);
-  
+
   // Only add non-null query params
   Object.entries(query ?? {})
-    .filter(([, value]) => value != null)
+    .filter(([_, value]) => value != null)
     .forEach(([key, value]) => url.searchParams.set(key, String(value)));
-    
+
   return url.toString();
 };
 
 const fetcher = async (url: string, options?: RequestInit) => {
+  const token = useUserStore.getState().user?.token;
+
+  const headers = new Headers(options?.headers);
+
+  headers.set("Content-Type", "application/json");
+  if (token) headers.set("Authorization", `Bearer ${token}`);
+
   const res = await fetch(url, {
-    headers: { "Content-Type": "application/json", ...options?.headers },
     ...options,
+    headers,
+    credentials: "include",
   });
 
   if (!res.ok) {
     if (res.status === 404) return notFound();
-    throw await res.json() as ApiError;
+    throw (await res.json()) as ApiError;
   }
 
   return res.json();
@@ -43,10 +54,10 @@ const createApiHook = <ResponseType, RequestType = never>(
     const url = buildUrl(path, options?.query);
     const isMutation = method !== "GET";
     const shouldFetch = !isMutation || data !== undefined;
-    
+
     return useSWR<ResponseType, ApiError>(
       shouldFetch ? url : null,
-      isMutation && data 
+      isMutation && data
         ? () => fetcher(url, { method, body: JSON.stringify(data) })
         : fetcher,
       options?.config
@@ -57,9 +68,12 @@ const createApiHook = <ResponseType, RequestType = never>(
 // Lean API object with smart defaults
 const api = {
   auth: {
-    register: createApiHook<AuthResponse, RegisterFormSchema>("/register", "POST"),
+    register: createApiHook<AuthResponse, RegisterFormSchema>(
+      "/register",
+      "POST"
+    ),
     login: createApiHook<AuthResponse, LoginFormSchema>("/login", "POST"),
-  }
+  },
 } as const;
 
 export default api;
