@@ -5,14 +5,14 @@ from PIL import Image, UnidentifiedImageError
 from api.constants import ALLOWED_IMAGE_FORMATS, MAX_IMAGE_SIZE_MB, MIN_IMAGE_RESOLUTION, MAX_IMAGE_RESOLUTION
 
 def validate_password(
-    password: Optional[str],
+    password: str,
     min_length: int = 8,
     max_length: int = 32,
     require_digit: bool = True,
     require_lowercase: bool = True,
     require_uppercase: bool = True,
     require_non_alphanumeric: bool = True
-) -> Optional[str]:
+) -> str:
     """
     Validate password strength according to specified requirements.
     
@@ -31,9 +31,6 @@ def validate_password(
     Raises:
         ValueError: If password doesn't meet the requirements
     """
-    if password is None:
-        return None
-
     errors = []
     
     # Check length requirements
