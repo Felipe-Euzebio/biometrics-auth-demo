@@ -1,5 +1,4 @@
-from .http_errors import (
-    HttpError,
+from .http_exceptions import (
     BadRequestError,
     UnauthorizedError,
     ForbiddenError,
@@ -8,11 +7,9 @@ from .http_errors import (
 )
 
 __all__ = [
-    "HttpError"
     "BadRequestError",
     "UnauthorizedError", 
     "ForbiddenError",
     "NotFoundError",
-    "ValidationError",
     "InternalServerError"
 ]
