@@ -1,7 +1,16 @@
 from fastapi import APIRouter, Form, Request, Depends, Response
 from api.dependencies import AuthServiceDep, authx
-from api.schemas import LoginDto, RegisterDto, AuthenticatedDto, RefreshTokenDto, NewAccessTokenDto, UserDto
-from api.errors import HttpError
+from api.schemas import (
+    LoginDto, 
+    RegisterDto, 
+    AuthenticatedDto, 
+    RefreshTokenDto, 
+    NewAccessTokenDto, 
+    UserDto,
+    HttpError,
+    ValidationError,
+    InternalServerError
+)
 from api.config import settings
 
 router = APIRouter(prefix="/auth", tags=["auth"])
@@ -11,7 +20,8 @@ router = APIRouter(prefix="/auth", tags=["auth"])
     response_model=AuthenticatedDto,
     responses={
         400: {"model": HttpError},
-        500: {"model": HttpError}
+        422: {"model": ValidationError},
+        500: {"model": InternalServerError}
     }
 )
 async def register(
@@ -38,7 +48,8 @@ async def register(
     responses={
         400: {"model": HttpError},
         401: {"model": HttpError},
-        500: {"model": HttpError}
+        422: {"model": ValidationError},
+        500: {"model": InternalServerError}
     }
 )
 async def login(
@@ -65,7 +76,8 @@ async def login(
     responses={
         400: {"model": HttpError},
         401: {"model": HttpError},
-        500: {"model": HttpError}
+        422: {"model": ValidationError},
+        500: {"model": InternalServerError}
     }
 )
 async def refresh(
@@ -83,7 +95,8 @@ async def refresh(
     responses={
         401: {"model": HttpError},
         404: {"model": HttpError},
-        500: {"model": HttpError}
+        422: {"model": ValidationError},
+        500: {"model": InternalServerError}
     }
 )
 async def get_current_user(
