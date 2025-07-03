@@ -1,8 +1,5 @@
 from fastapi import HTTPException
-from pydantic import BaseModel
 
-class HttpError(BaseModel):
-    detail: str
 
 class BadRequestError(HTTPException):
     """HTTP 400 Bad Request error."""
