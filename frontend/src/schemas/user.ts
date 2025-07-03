@@ -11,9 +11,12 @@ const imageValidationSchema = z
   .refine((file: File) => file.size <= maxFileSizeMB * 1024 * 1024, {
     message: `File size must be less than ${maxFileSizeMB} MB`,
   })
-  .refine((file: File) => allowedFileTypes.includes(file.type as AllowedFileTypes), {
-    message: `File type must be JPEG, PNG, or WebP`,
-  });
+  .refine(
+    (file: File) => allowedFileTypes.includes(file.type as AllowedFileTypes),
+    {
+      message: `File type must be JPEG, PNG, or WebP`,
+    }
+  );
 
 const userSchema = z.object({
   email: z.string().email("Invalid email address"),
@@ -45,8 +48,3 @@ export const loginFormSchema = userSchema.partial({
 export type RegisterFormSchema = z.infer<typeof registerFormSchema>;
 
 export type LoginFormSchema = z.infer<typeof loginFormSchema>;
-
-export type AuthResponse = {
-  accessToken: string;
-  refreshToken: string;
-}
